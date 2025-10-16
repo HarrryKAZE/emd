@@ -1,0 +1,55 @@
+clc;
+clear;
+close all;
+
+% Given data
+V = 450;                % Rated voltage (V)
+p = 6;                  % Number of poles
+AT_per_pole = 6500;     % Ampere-turns per pole
+Lp = 180e-3;            % Pole length (m)
+bp = 100e-3;            % Pole width (m)
+di = 18e-3;             % Pole depth (m)
+rho = 0.02;             % Resistivity (ohm·m/mm^2)
+V_drop = 30;            % Regulator drop (V)
+ins_thickness = 0.01e-3; % Insulation thickness (m)
+
+% Step 1: Voltage across shunt field winding
+Vf_total = V - V_drop;        % Voltage across field winding
+Vf_per_coil = Vf_total / p;   % Voltage across each field coil
+
+% Step 2: Length of mean turn (formula)
+Lmt = 2 * (Lp + bp) + 4 * di; % Mean length of one turn (m)
+
+% Step 3: Area of conductor (mm^2)
+ai = (AT_per_pole * rho * Lmt) / Vf_per_coil;
+
+% Step 4: Diameter of conductor (mm)
+d_bare = sqrt((4 * ai) / pi);             % Bare diameter (mm)
+d_with_ins = d_bare + 2 * (ins_thickness * 1e3); % Including insulation (mm)
+
+% Step 5: Number of turns per pole
+height = 0.10;   % Height of coil (m)
+depth = 0.018;   % Depth of coil (m)
+turns_height = floor(height / (d_with_ins * 1e-3));
+turns_depth = floor(depth / (d_with_ins * 1e-3));
+T_per_pole = turns_height * turns_depth;
+
+% Step 6: Field current
+If = AT_per_pole / T_per_pole;
+
+% Step 7: Losses in field coil
+P_loss = Vf_per_coil * If;
+
+% Step 8: Dissipating surface area (cm^2)
+S = 2 * Lmt * (height + depth) * 1e4; % convert m² to cm²
+
+% Display results
+fprintf('Voltage across each field coil = %.2f V\n', Vf_per_coil);
+fprintf('Length of mean turn (Lmt) = %.3f m\n', Lmt);
+fprintf('Conductor cross-sectional area (ai) = %.3f mm^2\n', ai);
+fprintf('Bare conductor diameter = %.2f mm\n', d_bare);
+fprintf('Diameter with insulation = %.3f mm\n', d_with_ins);
+fprintf('Turns per pole = %d\n', T_per_pole);
+fprintf('Field current (If) = %.3f A\n', If);
+fprintf('Losses in field coil = %.2f W\n', P_loss);
+fprintf('Dissipating surface area = %.2f cm^2\n', S);
