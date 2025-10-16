@@ -1,0 +1,116 @@
+clc
+clear all
+close all
+
+% Given parameters
+P = 500;           % Power in kW
+v = 460;           % Voltage
+p = 8;             % Number of poles
+N = 375;           % Speed in rpm
+n = N / 60;        % Speed in rps
+D = 1.1;           % Diameter in m
+L = 0.33;          % Length in m
+si = 0.7;          % Space factor
+ac = 34000;        % Specific electric loading
+va = 0.04 * v;     % Armature voltage drop
+
+% Type of winding
+il = P * 1000 / v;     % Armature current
+i_field = 0.01 * il;   % Field current
+Ia = il + i_field;     
+Ia1 = round(Ia);
+
+if (Ia1 < 400)
+    disp('i) Wave winding')
+    winding = 1;
+else
+    disp('i) Lap winding')
+    winding = 0;
+end
+
+% Number of armature conductors
+if (winding == 1)
+    A = 2;
+else
+    A = p;
+end
+
+Z = round(ac * pi * D * A / Ia);
+fprintf('ii) Number of Armature Conductors (Z) = %d conductors\n', Z);
+
+% Number of armature slots
+Sa1 = round(pi * D * 100 / 3.5);
+Sa2 = round(pi * D * 100 / 2.5);
+Sa3 = 9 * p;
+Sa4 = 16 * p;
+
+r1 = max(Sa1, Sa3);
+r2 = min(Sa2, Sa4);
+pole_pair = p / 2;
+slots = 0;
+
+for i = r1:r2
+    if mod(i, 4) == 0
+        l_w = (si * i / p);
+        l_w = round(l_w, 1);
+        if mod(l_w, 1) == 0.5
+            cond2 = i / p;
+            if mod(cond2, 1) == 0.5
+                slots = i;
+                break;
+            end
+        end
+    end
+end
+
+if slots == 0
+    error('\niii) No valid slots found in the given range!');
+else
+    fprintf('iii) Number of Armature Slots (Sa) = %d\n', slots);
+end
+
+% Conductors per slot
+zss = round(Z / slots);
+if mod(zss, 2) == 1
+    zss = zss - 1;
+end
+fprintf('iv) Number of Conductors per Slot (zss) = %d\n', zss);
+
+% Slot loading
+slot_loading = round(Ia * zss / A);
+if (slot_loading < 1500)
+    fprintf('v) Slot loading = %d, which is less than 1500 A\n', slot_loading);
+else
+    disp('v) Slot loading is not less than 1500 A');
+end
+
+% Minimum number of armature coils
+E = v + va;
+c_min = round(E * p / 15);
+fprintf('vi) Minimum number of Armature Coils (c_min) = %d\n', c_min);
+
+% Number of armature coils
+for i = 2:2:10
+    c = (slots * i / 2);
+    if (c > c_min)
+        coil_sides = i;
+        break;
+    end
+end
+fprintf('vii) Number of Armature Coils (c) = %d\n', c);
+
+% Turns per coil
+ztotal = zss * slots;
+Tc = (ztotal / (2 * c));
+
+if floor(Tc) == Tc
+    fprintf('viii) Tc = %d. Since Tc is an integer, it is a valid design.\n', Tc);
+else
+    coil_sides = coil_sides + 2;
+    c = (slots * coil_sides / 2);
+    Tc = (ztotal / (2 * c));
+    fprintf('viii) Corrected Tc = %d\n', Tc);
+end
+
+fprintf('ix) Coil sides (U) = %d\n', coil_sides);
+fprintf('x) Updated number of armature coils (c) = %d\n', c);
